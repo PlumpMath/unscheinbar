@@ -1,0 +1,116 @@
+<html>
+
+<head>
+  <title>Unscheinbar (WIP) - Copyright © 2014~2015 by Sascha Willems (www.saschawillems.de)</title>
+  <script>
+  /*
+  @licstart  The following is the entire license notice for the
+  JavaScript code in this page.
+
+  Copyright (C) 2014~2015 by Sascha Willems (www.saschawillems.de)
+
+  The JavaScript code in this page is free software: you can
+  redistribute it and/or modify it under the terms of the GNU
+  General Public License (GNU GPL) as published by the Free Software
+  Foundation, either version 3 of the License, or (at your option)
+  any later version.  The code is distributed WITHOUT ANY WARRANTY;
+  without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+  @licend  The above is the entire license notice
+  for the JavaScript code in this page.
+  */
+  </script>
+</head>
+
+
+<body ng-app>
+  <canvas id="rttCanvas" style="display:none" width="1024" height="1024"></canvas>
+  <canvas id="webGLcanvas" style='position: absolute; left: 0px; top: 0px;'></canvas>
+
+  <script type="text/javascript" src="js/external/gl-matrix-min.js"></script>
+  <script type="text/javascript" src="js/external/angular.min.js"></script>
+
+  <script type="text/javascript" src="js/dungeonGenerator/dungeonCell.js"></script>
+  <script type="text/javascript" src="js/dungeonGenerator/dungeonRoom.js"></script>
+
+  <script type="text/javascript" src="js/mainMenu.js"></script>
+
+  <script type="text/javascript" src="js/shaderManager.js"></script>
+  <script type="text/javascript" src="js/textureManager.js"></script>
+  <script type="text/javascript" src="js/dungeonGenerator.js"></script>
+  <script type="text/javascript" src="js/bspPartition.js"></script>
+  <script type="text/javascript" src="js/player.js"></script>
+  <script type="text/javascript" src="js/enemy.js"></script>
+  <script type="text/javascript" src="js/vertexBufferObject.js"></script>
+  <script type="text/javascript" src="js/game.js"></script>
+  <script type="text/javascript" src="js/line.js"></script>
+  <script type="text/javascript" src="js/main.js"></script>
+
+  <div id="hud" ng-controller="hudController" style="display:none;">
+    <div id="fps" style='position: absolute; left: 5px; top: 5px;'><font color="white">{{ fps }}</font></div>
+    <div id="dungeontitle" style='position: absolute; left: 5px; top: 25px;'><font color="white">{{ dungeontitle }}</font></div>
+    <div id="player" style='position: absolute; left: 5px; top: 45px;'>
+      <font color='white'>player : <br>
+      pos = {{ playerx }} / {{ playery }}<br>
+      rot = {{ playerrot }}<br>
+      {{ additionalinfo }}<br>
+    </div>
+  </div>
+
+
+  <script type="text/javascript">
+    webGLStart();
+    var generator = new dungeonGenerator();
+    generateDungeon(96);
+    function generateDungeon(dim) {
+      var roomFrequency = 20;
+      var splitStop = 25;
+      generator.generate(parseInt(dim), parseInt(dim), parseInt(roomFrequency), parseInt(splitStop));
+    }
+
+    var game = new game()
+    var mainMenu = new mainMenu();
+
+    var player = new player();
+    var partition = null;
+    while (true) {
+       partition = generator.dungeon.partitions[Math.floor(Math.random() * generator.dungeon.partitions.length)];
+       if (partition.hasRoom) {
+          player.x = partition.centerX;
+          player.y = partition.centerY;
+          break;
+       }
+    };
+
+    // TODO : Test
+    game.spawnEnemy(player.x, player.y, textureManager.textures.defaultEnemy);
+
+    angular.module("hud", []).
+    controller("hudController", function($scope){
+      $scope.dungeontitle = "";
+      $scope.fps = "0 fps";
+      $scope.playerx = player.x;
+      $scope.playery = player.y;
+      $scope.playerrot = player.rotation;
+      $scope.additionalinfo = '';
+    });
+    angular.bootstrap(document.getElementById("hud"), ["hud"]);
+    var hudScope = angular.element(document.getElementById("hud")).scope();
+    hudScope.$apply('dungeontitle = "' + generator.dungeon.name + '"');
+
+    generateVertexBuffers();
+    generateVertexArrayMap();
+
+    window.addEventListener('keydown', function(event) { game.keyHandler(event) }, false);
+    window.addEventListener('resize', resizeCanvas, false);
+
+    document.getElementById("webGLcanvas").addEventListener('mousemove', function(event) { player.mouseMoveHandler(event) }, false);
+    document.getElementById("webGLcanvas").addEventListener('click', function(event) { document.getElementById("webGLcanvas").requestPointerLock() }, false);
+
+    firstRenderInterval = setInterval(render, 150);
+
+  </script>
+</body>
+
+</html>
